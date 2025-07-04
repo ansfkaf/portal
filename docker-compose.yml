@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: portal-mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_HOST=%  # 允许任何主机连接
+    command: >
+      --default-authentication-plugin=mysql_native_password 
+      --bind-address=0.0.0.0
+    ports:
+      - "3306:3306"  # 添加了端口映射
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - app-network
+
+  app:
+    # image: ghcr.io/ansfkaf/portal:latest
+    image: portal:latest
+    container_name: portal-app
+    restart: always
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - MYSQL_HOST=mysql  # 硬编码为容器名
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USERNAME=${MYSQL_USERNAME}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRE=${JWT_EXPIRE}
+      - TG_BOT_TOKEN=${TG_BOT_TOKEN}
+      - GOTOOLCHAIN=auto
+      - WS_URL=agent.xiazai5.xyz  # 添加生产环境的WebSocket URL
+          # 添加S3备份需要的环境变量
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - BUCKET_NAME=${BUCKET_NAME}
+      - APP_ENV=${APP_ENV}
+            # 添加日志相关环境变量
+      - LOG_PATH=/app/backend/logs/portal.log
+      - LOG_MAX_SIZE=10
+      - LOG_CONSOLE_OUTPUT=true
+    volumes:
+      - ./.env:/app/.env
+      - ./backend/logs:/app/backend/logs  # 直接映射主机上的目录
+    ports:
+      - "8001:81"
+      - "8080:8080"
+    networks:
+      - app-network
+# 定义网络
+networks:
+  app-network:
+    driver: bridge
+
+# 定义卷 - 使用Docker托管的卷
+volumes:
+  mysql_data:
+    # 无需额外配置，Docker会自动管理

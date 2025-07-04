@@ -1,0 +1,3 @@
+yarn.lock
+backend/logs/
+backend/*.log
