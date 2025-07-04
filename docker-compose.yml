@@ -26,8 +26,8 @@ services:
       - app-network
 
   app:
-    # image: ghcr.io/ansfkaf/portal:latest
-    image: portal:latest
+    image: ghcr.io/ansfkaf/portal:latest
+    # image: portal:latest
     container_name: portal-app
     restart: always
     depends_on:
